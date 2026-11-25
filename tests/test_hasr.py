@@ -1,4 +1,4 @@
-"""Automated tests for hasr v0.1.2 — run: python3 tests/test_hasr.py
+"""Automated tests for hasr v0.1.2 — run: python3 -m pytest tests/ -v
 
 Sample files are NOT bundled (third-party licenses unclear); tests that need
 them skip when absent. See samples/README.md for fetch commands and provenance.
@@ -6,6 +6,8 @@ them skip when absent. See samples/README.md for fetch commands and provenance.
 
 import os
 import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -63,8 +65,7 @@ def test_provenance_breakdown():
 
 def test_extract_ifc2x3():
     if not os.path.exists(SAMPLE_2X3):
-        print("SKIP ifc2x3 sample missing (see samples/README.md)")
-        return
+        pytest.skip("ifc2x3 sample missing (see samples/README.md)")
     project, schema, unit_note, records = extract(SAMPLE_2X3)
     assert schema == "IFC2X3"
     assert len(records) == 13
@@ -86,8 +87,7 @@ def test_extract_ifc2x3():
 
 def test_extract_ifc4():
     if not os.path.exists(SAMPLE_4):
-        print("SKIP ifc4 sample missing (see samples/README.md)")
-        return
+        pytest.skip("ifc4 sample missing (see samples/README.md)")
     project, schema, unit_note, records = extract(SAMPLE_4)
     assert schema.startswith("IFC4"), schema
     types = {r.ifc_type for r in records}
@@ -180,10 +180,10 @@ def test_duplicate_quantity_never_summed():
     print("OK duplicate quantity sets: last wins, no double counting")
 
 
-def test_workbook(tmp_out):
+def test_workbook(tmp_path):
     if not os.path.exists(SAMPLE_2X3):
-        print("SKIP workbook sample missing (see samples/README.md)")
-        return
+        pytest.skip("workbook sample missing (see samples/README.md)")
+    tmp_out = str(tmp_path / "hasr-boq.xlsx")
     rc = cli_main([SAMPLE_2X3, "-o", tmp_out])
     assert rc == 0 and os.path.exists(tmp_out)
     wb = load_workbook(tmp_out)
@@ -227,8 +227,7 @@ def test_workbook(tmp_out):
 
 def test_real_revit_export_geometry_fallback():
     if not os.path.exists(SAMPLE_RAC):
-        print("SKIP rac sample missing (see samples/README.md)")
-        return
+        pytest.skip("rac sample missing (see samples/README.md)")
     import ifcopenshell
 
     project, schema, unit_note, records = extract(SAMPLE_RAC)
