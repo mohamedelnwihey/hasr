@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+samples/*.ifc
+samples/*.xlsx
+dist/
+*.egg-info/
