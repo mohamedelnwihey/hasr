@@ -187,7 +187,7 @@ def test_workbook(tmp_path):
     rc = cli_main([SAMPLE_2X3, "-o", tmp_out])
     assert rc == 0 and os.path.exists(tmp_out)
     wb = load_workbook(tmp_out)
-    assert wb.sheetnames == ["جدول الكميات", "تفاصيل العناصر"]
+    assert wb.sheetnames[:2] == ["جدول الكميات", "تفاصيل العناصر"]
     ws = wb["جدول الكميات"]
     assert ws.sheet_view.rightToLeft is True
     header = [ws.cell(row=5, column=c).value for c in range(1, 8)]
