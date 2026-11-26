@@ -85,11 +85,47 @@ TYPE_DEFAULTS = {
     "IfcDoor": ("أعمال الأبواب", "Doors", ["Count"], "count", None),
     "IfcWindow": ("أعمال الشبابيك", "Windows", ["Count"], "count", None),
     "IfcSpace": ("المساحات", "Spaces", ["NetFloorArea", "GrossFloorArea", "Area"], "m2", None),
-    "IfcCovering": ("أعمال التشطيبات - تغطيات", "Finishes - Coverings", ["Area", "NetArea"], "m2", None),
+    "IfcCovering": ("أعمال التشطيبات - تغطيات", "Finishes - Coverings", ["Area", "NetArea"], "m2", "covering"),
     "IfcCurtainWall": ("واجهات زجاجية", "Curtain walls", ["Area", "NetArea"], "m2", "curtain_wall"),
-    "IfcRailing": ("الدرابزينات", "Railings", ["Length"], "m", None),
+    "IfcRailing": ("الدرابزينات", "Railings", ["Length"], "m", "railing"),
     "IfcFooting": ("الأساسات والقواعد", "Footings", ["NetVolume", "GrossVolume"], "m3", "footing"),
     "IfcPile": ("الخوازيق", "Piles", ["Count"], "count", None),
+    "IfcMember": ("قطاعات ومساند", "Framing members", ["Length"], "m", "member"),
+    "IfcPlate": ("ألواح وبانلات", "Plates and panels", ["NetArea", "GrossArea", "Area"], "m2", "plate"),
+}
+
+# Refinements for members and plates, driven by the model's own material name.
+MATERIAL_REFINEMENTS["member"] = [
+    (("alumin", "ألومنيوم", "المنيوم"),
+     "قطاعات ألومنيوم (مولينات)", "Aluminium sections (mullions)",
+     ["Length"], "m"),
+    (("steel", "metal", "حديد", "iron"),
+     "قطاعات معدنية", "Metal sections",
+     ["Length"], "m"),
+    (("wood", "timber", "خشب"),
+     "قطاعات خشبية", "Timber members",
+     ["Length"], "m"),
+]
+MATERIAL_REFINEMENTS["plate"] = [
+    (("glass", "glaz", "زجاج"),
+     "ألواح زجاجية", "Glass panels",
+     ["NetArea", "GrossArea", "Area"], "m2"),
+    (("stone", "granite", "marble", "حجر", "جرانيت", "رخام"),
+     "تكسيات حجر / رخام", "Stone panels",
+     ["NetArea", "GrossArea", "Area"], "m2"),
+    (("alumin", "metal", "steel", "ألومنيوم"),
+     "ألواح معدنية", "Metal panels",
+     ["NetArea", "GrossArea", "Area"], "m2"),
+]
+
+# IfcCovering is split by its PredefinedType (ceiling, flooring, cladding...).
+COVERING_TYPES = {
+    "CEILING": ("أسقف معلقة", "Suspended ceilings"),
+    "FLOORING": ("تشطيبات أرضيات", "Floor finishes"),
+    "CLADDING": ("تكسيات حوائط", "Wall cladding"),
+    "INSULATION": ("أعمال العزل", "Insulation"),
+    "ROOFING": ("أعمال الأسقف والأسطح", "Roofing works"),
+    "MEMBRANE": ("أعمال العزل", "Insulation"),
 }
 
 # Fallback quantity keys per unit when the priority keys don't match
@@ -101,7 +137,7 @@ UNIT_FALLBACK_KEYS = {
 }
 
 
-def classify(ifc_type: str, material: str):
+def classify(ifc_type: str, material: str, predefined: str = ""):
     """Return (item_ar, item_en, priority_keys, unit_key) or UNCLASSIFIED.
 
     Material comes from the IFC model itself; only keyword matches refine
@@ -111,6 +147,8 @@ def classify(ifc_type: str, material: str):
     if entry is None:
         return UNCLASSIFIED
     item_ar, item_en, keys, unit, family = entry
+    if ifc_type == "IfcCovering" and predefined in COVERING_TYPES:
+        item_ar, item_en = COVERING_TYPES[predefined]
     if family and material:
         mat = material.lower()
         for keywords, r_ar, r_en, r_keys, r_unit in MATERIAL_REFINEMENTS.get(family, []):
