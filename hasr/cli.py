@@ -46,7 +46,25 @@ def main(argv=None):
                         help="write a blank rebar ratio CSV and exit")
     parser.add_argument("--no-derived", action="store_true",
                         help="skip derived quantities (finishes, formwork, rooms)")
+    parser.add_argument("--xray", nargs="?", const="", default=None, metavar="SYSTEMS_JSON",
+                        help="X-RAY: finishing systems -> purchase list, evidence, what is missing "
+                             "(optional JSON of your own systems; default = unapproved examples)")
+    parser.add_argument("--boq-file", default=None, metavar="FILE",
+                        help="your existing BOQ (CSV/XLSX) for the X-RAY double-counting check")
+    parser.add_argument("--xray-plan", default=None, metavar="PNG",
+                        help="write a colored plan of the rooms (needs matplotlib)")
+    parser.add_argument("--xray-template", default=None, metavar="JSON",
+                        help="copy the example finishing systems to edit, and exit")
     args = parser.parse_args(argv)
+
+    if args.xray_template:
+        import shutil
+
+        from .xray import DEFAULT_PATH
+
+        shutil.copyfile(DEFAULT_PATH, args.xray_template)
+        print(f"saved example systems: {args.xray_template} (rates are unapproved examples)")
+        return 0
 
     if args.rebar_template:
         from .derived import write_rebar_template
@@ -68,6 +86,19 @@ def main(argv=None):
         ratios = load_rebar_ratios(args.rebar) if args.rebar else None
         new_records, extras = derive(args.ifc, records, ratios)
         records = records + new_records
+    xres = None
+    if args.xray is not None:
+        if extras is None:
+            print("error: --xray needs derived quantities (remove --no-derived)", file=sys.stderr)
+            return 2
+        from .xray import analyze, load_systems, read_boq_rows, render_plan, summary
+
+        config = load_systems(args.xray or None)
+        boq_rows = read_boq_rows(args.boq_file) if args.boq_file else None
+        xres = analyze(extras["rooms"], config, boq_rows)
+        extras["xray"] = xres
+        if args.xray_plan:
+            render_plan(xres, args.xray_plan)
     lines = aggregate(records)
     unclassified, no_qty, geometry = summarize_issues(records)
 
@@ -109,6 +140,10 @@ def main(argv=None):
         shown = round(stats["qty"]) if unit_key == "count" else round(stats["qty"], 3)
         src = f"file:{stats['file_n']} est:{stats['geo_n']} missing:{stats['missing_n']}"
         print(f"  - {item_ar} / {item_en}: {shown} {unit_ar}  [{src}]")
+    if xres is not None:
+        c = summary(xres)
+        print(f"x-ray   : {len(extras['rooms'])} rooms, room-scopes green {c['green']} / orange {c['orange']} / red {c['red']}, "
+              f"{len(xres['purchase'])} purchase lines, {len(xres['missing'])} findings")
     print(f"saved   : {out}")
     return 0
 
