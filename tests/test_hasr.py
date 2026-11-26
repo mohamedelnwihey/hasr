@@ -308,3 +308,19 @@ def test_prices_csv_and_totals(tmp_path):
     ws = load_workbook(out).active
     assert ws["H6"].value == 100.0 and ws["I6"].value == "=E6*H6"
     assert ws["I7"].value == "=SUM(I6:I6)"
+
+
+@pytest.mark.skipif(not os.path.exists(SAMPLE_4), reason="sample not fetched")
+def test_ifc4_mm_geometry_not_scaled_by_engine():
+    """The ISO IFC4 wall is 3 x 0.3 x 2 m minus a 1 x 0.3 x 1 m opening = 1.5 m3, not 1.5e9."""
+    _, _, _, records = extract(SAMPLE_4)
+    wall = [r for r in records if r.ifc_type == "IfcWall"][0]
+    assert wall.status == STATUS_GEOMETRY
+    assert wall.value == pytest.approx(1.5, rel=0.02)
+
+
+@pytest.mark.skipif(not os.path.exists(SAMPLE_2X3), reason="sample not fetched")
+def test_engine_scaled_file_is_left_alone():
+    _, _, _, records = extract(SAMPLE_2X3)
+    vols = [r.value for r in records if r.value is not None and r.unit_key == "m3"]
+    assert vols and max(vols) < 1000
