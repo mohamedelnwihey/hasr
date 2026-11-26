@@ -53,6 +53,9 @@ public sealed class BoqLine
     public int Elements { get; set; }
     public string Basis { get; set; } = "";
     public double? Price { get; set; }
+    public string PriceKind { get; set; } = "";       // "manual" (prices.csv) | "reference" (market feed) | "" (needs quote)
+    public string PriceNote { get; set; } = "";       // source, date, scope for a reference price
+    public string Material { get; set; } = "";        // material of the first element, used only to match reference prices
     public string Key => ItemEn;
 }
 
