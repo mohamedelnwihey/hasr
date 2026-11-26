@@ -34,3 +34,8 @@ A source is fetched only when `verified` is true, meaning a person opened the pa
 - Wall paint and plaster areas come from Revit materials. If walls have no finish material or paint, nothing is invented: the check shows it.
 - Formwork from faces is an estimate, marked unverified. Rebar weight = modelled bar volume x 7850 kg/m3.
 - Linked models are not read in this version.
+
+## v0.5.4: reference prices and update check
+- On Run, empty price cells are filled with a reference market price from a verified source (rebar, ready-mix concrete, porcelain/ceramic tiles, gypsum board). Only unambiguous unit matches are made. The "مصدر السعر" column shows the source and date. These prices are supply only and never approved. Your prices.csv always wins. Lines with no source say "محتاج عرض سعر".
+- At Revit startup the add-in reads version.json from this repo (silent when offline) and, if a newer version exists, shows one dialog with a download button and "skip this version". It never installs anything by itself.
+- Untested in real Revit (the update dialog and price fill were only unit-tested).
