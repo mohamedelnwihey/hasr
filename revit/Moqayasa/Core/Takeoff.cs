@@ -56,7 +56,7 @@ public static class Takeoff
                 {
                     Order = pol.Order, GroupAr = pol.GroupAr, GroupEn = pol.GroupEn,
                     ItemAr = $"{pol.ItemAr}: {g.Key.Name}{suffixAr}", ItemEn = nameEn, Unit = unit,
-                    Qty = total, Elements = n, Basis = source,
+                    Qty = total, Elements = n, Basis = source, Material = g.Select(x => x.Material).FirstOrDefault(x => !string.IsNullOrEmpty(x)) ?? "",
                 };
             }
             // formwork for concrete elements, from geometry
@@ -86,13 +86,13 @@ public static class Takeoff
             {
                 Order = 40, GroupAr = "تشطيبات (من الخامات)", GroupEn = "Finishes (from materials)",
                 ItemAr = $"{f.Ar}: {g.Key.Material} ({host.Item1})", ItemEn = nameEn, Unit = "m2",
-                Qty = g.Sum(a => a.Area), Elements = g.Select(a => a.ElementId).Distinct().Count(),
+                Qty = g.Sum(a => a.Area), Elements = g.Select(a => a.ElementId).Distinct().Count(), Material = g.Key.Material,
                 Basis = g.Key.Painted ? "Paint tool" : "material layer",
             };
         }
 
         res.Lines.AddRange(lines.Values.OrderBy(l => l.Order).ThenBy(l => l.ItemEn, StringComparer.Ordinal));
-        if (prices != null) foreach (var l in res.Lines) if (prices.TryGetValue(l.Key, out var p)) l.Price = p;
+        if (prices != null) foreach (var l in res.Lines) if (prices.TryGetValue(l.Key, out var p)) { l.Price = p; l.PriceKind = "manual"; l.PriceNote = "سعرك من prices.csv / your own price"; }
 
         foreach (var kv in missing.OrderBy(k => k.Key))
             res.Notes.Add($"{kv.Value} عنصر بدون قيمة لـ {kv.Key} (مش داخل الإجمالي) / {kv.Value} elements have no value for {kv.Key} (not in the total)");
