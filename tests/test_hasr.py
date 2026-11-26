@@ -272,3 +272,39 @@ if __name__ == "__main__":
     test_real_revit_export_geometry_fallback()
     test_missing_file()
     print("ALL TESTS PASSED")
+
+
+def test_member_plate_classification_from_model_material():
+    from hasr.items import UNCLASSIFIED, classify
+    assert classify("IfcMember", "Metal - Aluminium, Black-Anodized")[1].startswith("Aluminium")
+    assert classify("IfcPlate", "Glass")[1] == "Glass panels"
+    assert classify("IfcPlate", "Stone - Granite")[1] == "Stone panels"
+    # no material: neutral label, no engineering claim
+    assert classify("IfcMember", "")[1] == "Framing members"
+    assert classify("IfcBuildingElementProxy", "") == UNCLASSIFIED
+
+
+def test_covering_split_by_predefined_type():
+    from hasr.items import classify
+    assert classify("IfcCovering", "", "CEILING")[1] == "Suspended ceilings"
+    assert classify("IfcCovering", "", "FLOORING")[1] == "Floor finishes"
+    assert classify("IfcCovering", "", "")[1] == "Finishes - Coverings"
+
+
+def test_python_m_hasr_entrypoint_exists():
+    assert os.path.exists(os.path.join(ROOT, "hasr", "__main__.py"))
+
+
+def test_prices_csv_and_totals(tmp_path):
+    from hasr.cli import load_prices
+    from hasr.excel import write_boq
+    csvp = tmp_path / "p.csv"
+    csvp.write_text("item,unit,price\nWalls,m3,100\nDoors,No.,\nbad,x,abc\n", encoding="utf-8")
+    prices = load_prices(str(csvp))
+    assert prices == {"walls": 100.0}
+    lines = aggregate([_rec(STATUS_OK, 2.0)])
+    out = tmp_path / "o.xlsx"
+    write_boq("p", "IFC4", "", [_rec(STATUS_OK, 2.0)], lines, [], [], [], str(out), prices=prices)
+    ws = load_workbook(out).active
+    assert ws["H6"].value == 100.0 and ws["I6"].value == "=E6*H6"
+    assert ws["I7"].value == "=SUM(I6:I6)"
