@@ -261,6 +261,46 @@ def _extra_sheets(wb, records, extras):
         _table(wb.create_sheet("جدول الغرف"),
                ["الغرفة", "الاسم", "الدور", "المساحة م²", "المحيط م", "الارتفاع م",
                 "مساحة الحوائط م² (بدون خصم فتحات)"], rows, [14, 28, 16, 12, 12, 12, 30])
+    if extras.get("xray"):
+        _xray_sheets(wb, extras["xray"])
     rows = [[a[0], a[1], a[2], a[3]] for a in extras["assumptions"]]
     _table(wb.create_sheet("افتراضات الكميات المشتقة"),
            ["البند", "Item", "الأساس", "Basis"], rows, [18, 18, 70, 70])
+
+
+def _xray_sheets(wb, x):
+    from .xray import STATUS_LABEL
+
+    fills = {"green": "C6EFCE", "orange": "FFE0A8", "red": "F4B6B0"}
+
+    def paint(ws, row_idx, status, col):
+        ws.cell(row=row_idx, column=col).fill = PatternFill("solid", fgColor=fills[status])
+
+    # 1. missing
+    ws = wb.create_sheet("X-RAY إيه اللي ناقص")
+    rows = [[STATUS_LABEL[m["status"]][0], m["where"], m["ar"], m["en"]] for m in x["missing"]]
+    _table(ws, ["الحالة", "المكان", "الملاحظة", "Finding"], rows, [10, 34, 70, 70])
+    for i, m in enumerate(x["missing"], start=2):
+        paint(ws, i, m["status"], 1)
+    # 2. purchase list
+    ws = wb.create_sheet("X-RAY قائمة المشتريات")
+    rows = []
+    for p in x["purchase"]:
+        rows.append([STATUS_LABEL[p["status"]][0], p["system_ar"], p["ar"], p["en"], p["unit"],
+                     round(p["net"], 2), p["waste"], round(p["gross"], 2),
+                     p["pack_ar"], p["packs"], p["rooms"]])
+    _table(ws, ["الحالة", "النظام", "البند", "Item", "الوحدة", "الكمية الصافية", "الهالك %",
+                "بعد الهالك", "العبوة", "عدد العبوات للشراء", "عدد الغرف"], rows,
+           [10, 32, 28, 28, 8, 14, 10, 12, 20, 16, 10])
+    for i, p in enumerate(x["purchase"], start=2):
+        paint(ws, i, p["status"], 1)
+    # 3. evidence
+    ws = wb.create_sheet("X-RAY دليل الأرقام")
+    rows = [[e["room"], e["scope"], e["system"], e["component_en"], e["base_label"], round(e["base"], 3),
+             e["base_note"], e["formula"], round(e["net"], 3), e["unit"], e["waste"],
+             e["source"], "معتمد" if e["approved"] else "غير معتمد", e["guid"]] for e in x["evidence"]]
+    _table(ws, ["الغرفة", "النطاق", "النظام", "المكوّن", "أساس القياس", "القيمة", "ملاحظة القياس",
+                "المعادلة", "الكمية الصافية", "الوحدة", "هالك %", "مصدر المعدل", "الاعتماد", "GUID"], rows,
+           [22, 10, 28, 24, 18, 10, 34, 40, 14, 8, 8, 50, 12, 26])
+    for i, e in enumerate(x["evidence"], start=2):
+        paint(ws, i, "green" if e["approved"] else "orange", 13)
