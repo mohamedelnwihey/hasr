@@ -15,22 +15,25 @@ public static class Report
         var sheets = new List<Sheet>();
 
         // 1. BOQ with price column + formulas
-        var boq = new Sheet { Name = "المقايسة", FreezeRow = 3, Widths = { 6, 22, 40, 40, 8, 12, 9, 14, 16, 36 } };
+        var boq = new Sheet { Name = "المقايسة", FreezeRow = 3, Widths = { 6, 22, 40, 40, 8, 12, 9, 14, 16, 36, 58 } };
         boq.Add(new Cell($"مقايسة / Bill of Quantities — {r.ProjectName}", S.Title));
-        boq.Add(new Cell("الأسعار الصفراء مدخلة من ملفك أو من مصدر موثّق. بدون سعر = خارج الإجمالي. مفيش أسعار مدمجة.", S.Note));
+        boq.Add(new Cell("الأخضر = سعرك. البرتقالي = سعر سوق مرجعي من مصدر موثّق (توريد فقط، غير معتمد، راجع المصدر والتاريخ). بدون سعر = محتاج عرض سعر وخارج الإجمالي.", S.Note));
         boq.Add(new Cell("م", S.Header), new Cell("المجموعة", S.Header), new Cell("البند", S.Header), new Cell("Item", S.Header), new Cell("الوحدة", S.Header),
-            new Cell("الكمية", S.Header), new Cell("عدد العناصر", S.Header), new Cell("سعر الوحدة", S.Header), new Cell("الإجمالي", S.Header), new Cell("أساس الحساب", S.Header));
+            new Cell("الكمية", S.Header), new Cell("عدد العناصر", S.Header), new Cell("سعر الوحدة", S.Header), new Cell("الإجمالي", S.Header), new Cell("أساس الحساب", S.Header), new Cell("مصدر السعر", S.Header));
         int first = boq.Rows.Count + 1;
         foreach (var l in r.Lines)
         {
             int row = boq.Rows.Count + 1;
             boq.Add(new Cell(l.Order, S.Int), new Cell(l.GroupAr, S.Text), new Cell(l.ItemAr, S.Text), new Cell(l.ItemEn, S.Text), new Cell(Units.Ar(l.Unit), S.Text),
                 new Cell(Math.Round(l.Qty, 3), S.Num), new Cell(l.Elements, S.Int),
-                new Cell(l.Price, S.Input), new Cell(null, S.Num, $"IF(H{row}=\"\",\"\",F{row}*H{row})"), new Cell(l.Basis, S.Text));
+                new Cell(l.Price, S.Input), new Cell(null, S.Num, $"IF(H{row}=\"\",\"\",F{row}*H{row})"), new Cell(l.Basis, S.Text),
+                new Cell(l.PriceKind == "manual" ? "سعرك (prices.csv)" : l.PriceKind == "reference" ? l.PriceNote : "محتاج عرض سعر / needs quote", l.PriceKind == "manual" ? S.Green : S.Orange));
         }
         int last = boq.Rows.Count;
         boq.Add(new Cell("", S.TotalText), new Cell("", S.TotalText), new Cell("الإجمالي (البنود المسعّرة فقط)", S.TotalText), new Cell("", S.TotalText), new Cell("", S.TotalText),
-            new Cell("", S.TotalText), new Cell("", S.TotalText), new Cell("", S.TotalText), new Cell(null, S.TotalNum, $"SUM(I{first}:I{last})"), new Cell("", S.TotalText));
+            new Cell("", S.TotalText), new Cell("", S.TotalText), new Cell("", S.TotalText), new Cell(null, S.TotalNum, $"SUM(I{first}:I{last})"), new Cell("", S.TotalText), new Cell("", S.TotalText));
+        boq.Add(new Cell("", S.Text), new Cell("", S.Text), new Cell("منه: بنود بأسعار سوق مرجعية غير معتمدة (توريد فقط)", S.Orange), new Cell("", S.Text), new Cell("", S.Text),
+            new Cell("", S.Text), new Cell("", S.Text), new Cell("", S.Text), new Cell(null, S.Num, $"SUMIF(K{first}:K{last},\"سعر سوق*\",I{first}:I{last})"), new Cell("", S.Text), new Cell("", S.Text));
         sheets.Add(boq);
 
         // 2. purchase list
@@ -124,13 +127,13 @@ footer{text-align:center;color:#778;font-size:12px;padding:20px}
         sb.Append($"<div class=\"card\"><b>{(total is double t ? N(t) : "—")}</b><span>الإجمالي (البنود المسعّرة فقط)</span></div></div>");
         sb.Append("<div class=\"note\">الأسعار والمعدلات الظاهرة أمثلة غير معتمدة ما لم تتعلّم «معتمد». مفيش أسعار مدمجة في الأداة.</div>");
 
-        sb.Append("<h2>المقايسة</h2><table><tr><th>م</th><th>البند</th><th>الوحدة</th><th>الكمية</th><th>عناصر</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>");
+        sb.Append("<h2>المقايسة</h2><table><tr><th>م</th><th>البند</th><th>الوحدة</th><th>الكمية</th><th>عناصر</th><th>سعر الوحدة</th><th>الإجمالي</th><th>مصدر السعر</th></tr>");
         string grp = "";
         foreach (var l in r.Lines)
         {
-            if (l.GroupAr != grp) { grp = l.GroupAr; sb.Append($"<tr class=\"g\"><td colspan=\"7\">{E(grp)}</td></tr>"); }
+            if (l.GroupAr != grp) { grp = l.GroupAr; sb.Append($"<tr class=\"g\"><td colspan=\"8\">{E(grp)}</td></tr>"); }
             sb.Append($"<tr><td class=\"n\">{l.Order}</td><td>{E(l.ItemAr)}<br><small>{E(l.ItemEn)}</small></td><td class=\"n\">{E(Units.Ar(l.Unit))}</td><td class=\"n\">{N(l.Qty)}</td><td class=\"n\">{l.Elements}</td>" +
-                $"<td class=\"n\">{(l.Price is double p ? N(p) : "—")}</td><td class=\"n\">{(l.Price is double p2 ? N(p2 * l.Qty) : "—")}</td></tr>");
+                $"<td class=\"n\">{(l.Price is double p ? N(p) : "—")}</td><td class=\"n\">{(l.Price is double p2 ? N(p2 * l.Qty) : "—")}</td><td><small>{E(l.PriceKind == "manual" ? "سعرك" : l.PriceKind == "reference" ? l.PriceNote : "محتاج عرض سعر")}</small></td></tr>");
         }
         sb.Append("</table>");
         if (r.Purchase.Count > 0)
