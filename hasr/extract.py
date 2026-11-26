@@ -25,7 +25,7 @@ STATUS_UNCLASSIFIED = "unclassified"
 
 # IFC type -> geometry family for the estimate fallback
 from .items import TYPE_DEFAULTS
-from .geometry import GEOMETRY_MEASURE, geometry_measure
+from .geometry import GEOMETRY_MEASURE, geometry_measure, geometry_unit_correction
 
 
 @dataclass
@@ -196,6 +196,19 @@ def extract(path: str, use_geometry: bool = True):
     lf, af, vf, unit_note = _unit_factors(model)
     factors = (lf, af, vf)
 
+    geo_correction = 1.0
+    if use_geometry:
+        try:
+            from ifcopenshell.util.unit import calculate_unit_scale
+
+            geo_correction = geometry_unit_correction(
+                model, model.by_type("IfcBuildingElement"), calculate_unit_scale(model))
+        except Exception:
+            geo_correction = 1.0
+    if geo_correction != 1.0:
+        unit_note = (unit_note + "; " if unit_note else "") + \
+            "geometry engine returned file units; estimates rescaled to metres"
+
     records = []
     for element in model.by_type("IfcBuildingElement"):
         ifc_type = element.is_a()
@@ -223,10 +236,10 @@ def extract(path: str, use_geometry: bool = True):
             family = (TYPE_DEFAULTS.get(ifc_type) or (None, None, None, None, None))[4]
             measure = GEOMETRY_MEASURE.get(family or "")
             if measure:
-                raw = geometry_measure(element, measure)
+                raw = geometry_measure(element, measure, geo_correction)
                 if raw is not None:
-                    # the geometry engine normalizes coordinates to meters,
-                    # so geometry measures are already m / m2 / m3
+                    # the engine normally returns meters; geo_correction fixes
+                    # the files where it returns the file's own unit
                     value = raw
                     status = STATUS_GEOMETRY
 
