@@ -200,7 +200,7 @@ def extract(path: str, use_geometry: bool = True):
     for element in model.by_type("IfcBuildingElement"):
         ifc_type = element.is_a()
         material = _material_of(element)
-        result = classify(ifc_type, material)
+        result = classify(ifc_type, material, str(getattr(element, 'PredefinedType', '') or ''))
 
         if result == UNCLASSIFIED or ifc_type in NON_BOQ_TYPES:
             records.append(
