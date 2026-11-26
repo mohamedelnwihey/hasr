@@ -11,6 +11,24 @@ from .extract import aggregate, extract, summarize_issues
 from .items import UNITS
 
 
+def load_prices(path):
+    """Read item,price rows. Keys: lowercase English name or Arabic name. Blank prices skipped."""
+    import csv
+
+    prices = {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            item = (row.get("item") or "").strip()
+            raw = (row.get("price") or "").strip().replace(",", "")
+            if not item or not raw:
+                continue
+            try:
+                prices[item.lower() if item.isascii() else item] = float(raw)
+            except ValueError:
+                print(f"warning: bad price for '{item}': {raw!r}", file=sys.stderr)
+    return prices
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="hasr",
@@ -18,6 +36,10 @@ def main(argv=None):
     )
     parser.add_argument("ifc", help="Path to the IFC file (IFC2x3 or IFC4)")
     parser.add_argument("-o", "--out", default=None, help="Output .xlsx path")
+    parser.add_argument("--prices", default=None,
+                        help="CSV of unit prices: item,price (item = English or Arabic name)")
+    parser.add_argument("--prices-template", default=None, metavar="CSV",
+                        help="write a blank prices CSV for this model's BOQ items and exit")
     args = parser.parse_args(argv)
 
     if not os.path.exists(args.ifc):
@@ -28,11 +50,26 @@ def main(argv=None):
     lines = aggregate(records)
     unclassified, no_qty, geometry = summarize_issues(records)
 
+    if args.prices_template:
+        import csv
+
+        with open(args.prices_template, "w", newline="", encoding="utf-8-sig") as fh:
+            w = csv.writer(fh)
+            w.writerow(["item", "unit", "price"])
+            for (item_ar, item_en, unit_key), _s in sorted(lines.items()):
+                w.writerow([item_en, UNITS.get(unit_key, (unit_key, unit_key))[1], ""])
+        print(f"saved prices template: {args.prices_template}")
+        return 0
+
+    prices = None
+    if args.prices:
+        prices = load_prices(args.prices)
+
     out = args.out or os.path.splitext(os.path.basename(args.ifc))[0] + "-boq.xlsx"
     write_boq(
         project_name, schema, unit_note, records, lines,
         unclassified, no_qty, geometry, out,
-        source_name=os.path.basename(args.ifc),
+        source_name=os.path.basename(args.ifc), prices=prices,
     )
 
     print(f"project : {project_name or '(unnamed)'}")
