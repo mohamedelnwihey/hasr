@@ -61,16 +61,35 @@ Output workbook:
   OpenCASCADE engine and labeled "geometry-derived estimate" (تقديرية من المجسم)
   in both sheets, so they are never confused with file quantities
 
+## New in v0.2
+
+- IfcMember and IfcPlate are classified from the model's own material names
+  (aluminium mullions, metal sections, glass panels, stone panels). Without a
+  material they get a neutral label, never an assumed one.
+- IfcCovering is split by its PredefinedType (ceilings, floors, cladding).
+  Railings are measured by length.
+- Geometry fallback now also estimates member length (longest side of the
+  bounding box), panel area (half the surface area, edges ignored) and ceiling
+  area. These are estimates and stay labeled "geometry-derived estimate".
+  Check them against your own takeoff before relying on them.
+- Optional pricing: `python -m hasr model.ifc --prices-template prices.csv`
+  writes a blank item list; fill in the `price` column, then
+  `python -m hasr model.ifc --prices prices.csv -o boq.xlsx` adds unit price and
+  total columns (live Excel formulas) and a grand total. Items with no price are
+  left out of the total. Hasr ships no prices; they come from your file.
+- Fixed: `python -m hasr` now works as documented.
+- On the Autodesk `rac_advanced_sample_project` export (5,415 elements),
+  unclassified elements dropped from 4,732 to 75.
+
 ## Roadmap
 
-- Classification coverage for IfcMember / IfcPlate (framing and panels)
 - pyRevit / Revit add-in wrapper (no IFC export step)
-- Item prices and totals (تسعير البنود)
+- Roof quantities when the exporter gives no quantity set (a few roofs still fail)
 - More element coverage (MEP, finishes by room)
 
 ## Status
 
-Test suite (10 checks) covers IFC2x3 and IFC4 extraction, unit handling,
+Test suite (14 checks) covers IFC2x3 and IFC4 extraction, unit handling,
 classification honesty, duplicate-quantity safety, and an end-to-end run on
 the Autodesk `rac_advanced_sample_project` IFC2x3 export (5,415 elements):
 door/window counts verified against the file's entity counts, and 410
