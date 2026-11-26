@@ -25,15 +25,18 @@ $done = @(); $skipped = @()
 foreach ($y in $Years) {
   $addinDir = Join-Path $env:APPDATA "Autodesk\Revit\Addins\$y"
   $manifest = Join-Path $addinDir "Moqayasa.addin"
-  $bin = Join-Path $env:APPDATA "Moqayasa\bin\R$y"
+  $bin = Join-Path $addinDir "Moqayasa"                       # DLLs live next to the .addin, like other add-ins
+  $old = Join-Path $env:APPDATA "Moqayasa\bin\R$y"          # layout of v0.5.0-0.5.2, cleaned up
   if ($Uninstall) {
     if (Test-Path $manifest) { Remove-Item $manifest -Force; $done += $y }
     if (Test-Path $bin) { Remove-Item $bin -Recurse -Force }
+    if (Test-Path $old) { Remove-Item $old -Recurse -Force }
     continue
   }
   $src = Join-Path $here "R$y"
   if (-not (Test-Path $src)) { $skipped += "$y (no files for this year in the zip)"; continue }
   if (-not (Test-RevitInstalled $y)) { $skipped += "$y (Revit $y not found on this PC)"; continue }
+  if (Test-Path $old) { Remove-Item $old -Recurse -Force }
   New-Item -ItemType Directory -Force $bin, $addinDir | Out-Null
   Copy-Item "$src\*" $bin -Recurse -Force
   # files from a download carry a web mark that makes Revit ask or refuse to load them
