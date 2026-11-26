@@ -72,7 +72,7 @@ def _print_setup(ws):
     ws.sheet_properties.pageSetUpPr.fitToPage = True
 
 
-def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_qty, geometry, out_path, source_name="", prices=None):
+def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_qty, geometry, out_path, source_name="", prices=None, extras=None):
     wb = Workbook()
 
     # --- Sheet 1: BOQ summary (Arabic-first, right-to-left) ---
@@ -166,7 +166,7 @@ def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_
     if unit_note:
         _note(f"تنبيه الوحدات / Unit note: {unit_note}")
 
-    widths = [6, 34, 32, 12, 17, 16, 12] + ([14, 16] if prices is not None else [])
+    widths = [6, 38, 46, 12, 17, 16, 12] + ([14, 16] if prices is not None else [])
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -203,5 +203,64 @@ def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_
     for i, w in enumerate([5, 18, 26, 14, 20, 40, 10, 12, 24, 40], start=1):
         ws2.column_dimensions[get_column_letter(i)].width = w
 
+    _extra_sheets(wb, records, extras)
     wb.save(out_path)
     return out_path
+
+
+def _table(ws, header, rows, widths):
+    _print_setup(ws)
+    for i, h in enumerate(header, start=1):
+        ws.cell(row=1, column=i, value=h)
+    _style_header(ws, 1, len(header))
+    for r, vals in enumerate(rows, start=2):
+        for c, v in enumerate(vals, start=1):
+            cell = ws.cell(row=r, column=c, value=v)
+            cell.border = BORDER
+            cell.alignment = RIGHT if isinstance(v, str) else CENTER
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+
+def _extra_sheets(wb, records, extras):
+    """Per-storey pivot, door/window schedule, room schedule, assumptions."""
+    # per-storey pivot: item x storey (always, no geometry needed)
+    cells, storeys = {}, []
+    for r in records:
+        if r.status not in (STATUS_OK, STATUS_GEOMETRY) or r.value is None or not r.item_ar:
+            continue
+        st = r.storey or "(بدون دور)"
+        if st not in storeys:
+            storeys.append(st)
+        key = (r.item_ar, r.item_en, r.unit_key)
+        cells[(key, st)] = cells.get((key, st), 0.0) + r.value
+    keys = sorted({k for k, _ in cells})
+    if keys:
+        rows = []
+        for key in keys:
+            unit_ar = UNITS.get(key[2], (key[2], key[2]))[0]
+            vals = [cells.get((key, st)) for st in storeys]
+            vals = [_fmt_qty(v, key[2]) if v is not None else None for v in vals]
+            total = _fmt_qty(sum(v for v in (cells.get((key, st)) for st in storeys) if v), key[2])
+            rows.append([key[0], key[1], unit_ar] + vals + [total])
+        _table(wb.create_sheet("الكميات حسب الدور"),
+               ["البند", "Item", "الوحدة"] + storeys + ["الإجمالي"], rows,
+               [34, 32, 10] + [14] * len(storeys) + [14])
+    if not extras:
+        return
+    if extras.get("openings"):
+        rows = [[o["kind"].replace("Ifc", ""), o["type"], o["width"], o["height"],
+                 o["storey"], o["count"]] for o in extras["openings"]]
+        _table(wb.create_sheet("جدول الأبواب والشبابيك"),
+               ["النوع", "الطراز", "العرض م", "الارتفاع م", "الدور", "العدد"], rows,
+               [12, 40, 12, 12, 16, 10])
+    if extras.get("rooms"):
+        rows = [[r["name"], r["long_name"], r["storey"], round(r["area"], 2),
+                 round(r["perimeter"], 2), round(r["height"], 2),
+                 round(r["perimeter"] * r["height"], 2)] for r in extras["rooms"]]
+        _table(wb.create_sheet("جدول الغرف"),
+               ["الغرفة", "الاسم", "الدور", "المساحة م²", "المحيط م", "الارتفاع م",
+                "مساحة الحوائط م² (بدون خصم فتحات)"], rows, [14, 28, 16, 12, 12, 12, 30])
+    rows = [[a[0], a[1], a[2], a[3]] for a in extras["assumptions"]]
+    _table(wb.create_sheet("افتراضات الكميات المشتقة"),
+           ["البند", "Item", "الأساس", "Basis"], rows, [18, 18, 70, 70])
