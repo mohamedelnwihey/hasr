@@ -78,6 +78,10 @@ Output workbook:
   total columns (live Excel formulas) and a grand total. Items with no price are
   left out of the total. Hasr ships no prices; they come from your file.
 - Fixed: `python -m hasr` now works as documented.
+- Fixed: on some exports (seen on an IFC4 millimetre file) the geometry engine
+  returned file units instead of metres, inflating volumes a billion times. Hasr now
+  checks each model against the raw sizes of a few elements and rescales, and
+  says so in the unit note.
 - On the Autodesk `rac_advanced_sample_project` export (5,415 elements),
   unclassified elements dropped from 4,732 to 75.
 
@@ -89,7 +93,7 @@ Output workbook:
 
 ## Status
 
-Test suite (14 checks) covers IFC2x3 and IFC4 extraction, unit handling,
+Test suite (16 checks) covers IFC2x3 and IFC4 extraction, unit handling,
 classification honesty, duplicate-quantity safety, and an end-to-end run on
 the Autodesk `rac_advanced_sample_project` IFC2x3 export (5,415 elements):
 door/window counts verified against the file's entity counts, and 410
