@@ -22,7 +22,7 @@ One source tree, one build per year (`build.sh` / `build.ps1`):
 The tests (`dotnet run --project Tests`) run the Core on plain .NET. **Nobody has run the add-in inside Revit yet.** Try it on a copy of a project first.
 
 ## Install
-Run `install.ps1` from the folder containing `R2022 … R2027`; restart Revit; open the **مقايسة** tab.
+Run `install.ps1` from the folder containing `R2022 … R2027` (right-click, Run with PowerShell). It installs only for Revit years that are really installed and prints which. `install.ps1 -Uninstall` removes it. No SDK or download needed; restart Revit and open the **مقايسة** tab.
 Reports go to `Documents\Moqayasa`. Your editable files are in `%APPDATA%\Moqayasa`: `prices.csv`, `systems.json`, `price_sources.json`.
 
 ## Prices
