@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Moqayasa.Core.csproj" />
+    <Content Include="..\..\..\hasr\systems_example.json" Link="systems_example.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\hasr\price_sources_example.json" Link="price_sources_example.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="fixtures\*" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
