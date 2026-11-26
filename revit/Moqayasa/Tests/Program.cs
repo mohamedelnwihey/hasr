@@ -91,8 +91,58 @@ var cfg = SystemsConfig.Load(sysPath);
     var ezz = feedCfg.Sources.First(s => s.Item == "Rebar (Ezz)");
     Check(PriceFeed.Extract(rows, ezz) == 40850.0, "Ezz rebar row reads 40,850");
 }
-Console.WriteLine($"core checks: {passes} passed, {fails} failed");
 
+// ---- reference prices + update check
+{
+    var els = new List<ElementData>
+    {
+        new() { Id = "c1", Category = "StructuralColumns", TypeName = "C30x60", Volume = 2.0, Material = "Concrete C30" },
+        new() { Id = "rb", Category = "Rebar", TypeName = "T16", Length = 100, WeightKg = 2000 },
+        new() { Id = "d1", Category = "Doors", TypeName = "D1", Width = 0.9, Height = 2.1 },
+    };
+    var mats = new List<MaterialArea>
+    {
+        new() { ElementId = "w1", HostCategory = "Floors", Material = "Porcelain 60x60", Area = 10 },
+        new() { ElementId = "w2", HostCategory = "Walls", Material = "Gypsum board 12mm", Area = 28.8 },
+    };
+    var feed = new PriceFeedConfig { Sources = {
+        new PriceSource { Item = "Rebar (Ezz)", Vendor = "V", Verified = true, LastPrice = 50000, LastUpdated = "2026-11-26", Currency = "EGP", UnitNote = "ton" },
+        new PriceSource { Item = "Ready-mix concrete 300", Vendor = "V", Verified = true, LastPrice = 2000, LastUpdated = "2026-11-26" },
+        new PriceSource { Item = "Porcelain tiles 60x60", Vendor = "V", Verified = true, LastPrice = 300, LastUpdated = "2026-11-26" },
+        new PriceSource { Item = "Gypsum boards 1.2x2.4", Vendor = "V", Verified = true, LastPrice = 288, LastUpdated = "2026-11-26", UnitNote = "board" },
+        new PriceSource { Item = "HDF moulded internal door", Vendor = "V", Verified = false, LastPrice = 999 },
+    } };
+    var r = Takeoff.Build("T", els, mats, new List<RoomData>(), new Dictionary<string, double>(), null);
+    int n = PriceFeed.ApplyReference(r.Lines, feed);
+    var conc = r.Lines.First(l => l.ItemEn.StartsWith("Structural columns") && l.Unit == "m3");
+    var rb = r.Lines.First(l => l.ItemEn.StartsWith("Reinforcement") && l.Unit == "ton");
+    var tile = r.Lines.First(l => l.ItemEn.StartsWith("Tiles"));
+    var gyp = r.Lines.First(l => l.ItemEn.StartsWith("Gypsum"));
+    var door = r.Lines.First(l => l.ItemEn.StartsWith("Doors"));
+    Check(n == 4, "4 reference prices applied, got " + n);
+    Check(conc.Price == 2000 && conc.PriceKind == "reference" && conc.PriceNote.Contains("غير معتمد") && conc.PriceNote.Contains("2026-11-26"), "concrete reference price with source/date note");
+    Check(rb.Price == 50000, "rebar per ton");
+    Check(tile.Price == 300 && Near(gyp.Price!.Value, 100), "tile per m2, gypsum board price / 2.88 m2 = 100");
+    Check(door.Price is null && door.PriceKind == "", "unsourced item stays empty (needs quote)");
+    var manual = new Dictionary<string, double> { [conc.ItemEn] = 1234 };
+    var r2 = Takeoff.Build("T", els, mats, new List<RoomData>(), manual, null);
+    PriceFeed.ApplyReference(r2.Lines, feed);
+    var c2 = r2.Lines.First(l => l.ItemEn.StartsWith("Structural columns") && l.Unit == "m3");
+    Check(c2.Price == 1234 && c2.PriceKind == "manual", "your own price always wins over reference");
+    var x = Path.Combine(Path.GetTempPath(), "mq_ref.xlsx"); Report.WriteXlsx(x, r);
+    Check(new FileInfo(x).Length > 2000, "xlsx with reference columns written");
+
+    var info = Update.Parse("{\"version\":\"0.6.0\",\"changelog_ar\":\"x\",\"download\":\"https://example.com/z\"}");
+    Check(Update.ShouldOffer(info, "0.5.4", null), "newer version offered");
+    Check(!Update.ShouldOffer(info, "0.6.0", null) && !Update.ShouldOffer(info, "0.7.0", null), "same or older not offered");
+    Check(!Update.ShouldOffer(info, "0.5.4", "0.6.0"), "skipped version not offered");
+    Check(Update.ShouldOffer(info, "0.5.4", "0.5.9"), "older skip does not hide a newer version");
+    Check(!Update.ShouldOffer(Update.Parse("garbage"), "0.5.4", null) && !Update.ShouldOffer(null, "0.5.4", null), "bad json: silent");
+    Check(!Update.ShouldOffer(Update.Parse("{\"version\":\"0.9\",\"download\":\"http://x\"}"), "0.5.4", null), "non-https download refused");
+    Check(Update.ShouldOffer(Update.Parse("{\"version\":\"v0.10.0\",\"download\":\"https://x\"}"), "0.9.0", null), "0.10 > 0.9 numerically");
+}
+
+Console.WriteLine($"core checks: {passes} passed, {fails} failed");
 // ---- fixture mode: Tests <fixture.json> <outdir> [prices.csv]
 if (args.Length >= 2)
 {
