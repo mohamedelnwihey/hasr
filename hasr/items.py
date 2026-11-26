@@ -18,6 +18,7 @@ UNITS = {
     "m2": ("م²", "m²"),
     "m": ("م طولي", "m"),
     "count": ("عدد", "No."),
+    "ton": ("طن", "ton"),
 }
 
 UNCLASSIFIED = "unclassified"
