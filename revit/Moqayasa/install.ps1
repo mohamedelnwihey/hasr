@@ -38,20 +38,30 @@ foreach ($y in $Years) {
   Copy-Item "$src\*" $bin -Recurse -Force
   # files from a download carry a web mark that makes Revit ask or refuse to load them
   try { Get-ChildItem $bin -Recurse -File | Unblock-File } catch { }
-  $dll = Join-Path $bin "Moqayasa.dll"
-  @"
-<?xml version="1.0" encoding="utf-8"?>
-<RevitAddIns>
-  <AddIn Type="Application">
-    <Name>Moqayasa</Name>
-    <Assembly>$dll</Assembly>
-    <FullClassName>Moqayasa.App</FullClassName>
-    <AddInId>5b0b6f0e-7a51-4c1e-9a52-6f1a3a1d0a77</AddInId>
-    <VendorId>HASR</VendorId>
-    <VendorDescription>Hasr / Moqayasa, open source (MIT)</VendorDescription>
-  </AddIn>
-</RevitAddIns>
-"@ | Set-Content -Encoding UTF8 $manifest
+  $dll = [System.IO.Path]::GetFullPath((Join-Path $bin "Moqayasa.dll"))   # absolute, expanded, no %VARS%
+  foreach ($f in @("Moqayasa.dll", "Moqayasa.Core.dll")) {
+    if (-not (Test-Path -LiteralPath (Join-Path $bin $f))) { throw "Missing $f in $bin after copy. Re-extract the zip fully and run again." }
+  }
+  $xml = @(
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<RevitAddIns>',
+    '  <AddIn Type="Application">',
+    '    <Name>Moqayasa</Name>',
+    "    <Assembly>$dll</Assembly>",
+    '    <FullClassName>Moqayasa.App</FullClassName>',
+    '    <AddInId>5b0b6f0e-7a51-4c1e-9a52-6f1a3a1d0a77</AddInId>',
+    '    <VendorId>HASR</VendorId>',
+    '    <VendorDescription>Hasr / Moqayasa, open source (MIT)</VendorDescription>',
+    '  </AddIn>',
+    '</RevitAddIns>'
+  ) -join "`r`n"
+  # UTF-8 WITHOUT byte-order mark, written by .NET so every PowerShell version behaves the same
+  [System.IO.File]::WriteAllText($manifest, $xml + "`r`n", (New-Object System.Text.UTF8Encoding($false)))
+  # read it back exactly as Revit will and confirm the file it points to exists
+  $back = ([xml](Get-Content -LiteralPath $manifest -Raw)).RevitAddIns.AddIn.Assembly
+  if (-not (Test-Path -LiteralPath $back)) { throw "Written path does not exist: $back" }
+  $first = [System.IO.File]::ReadAllBytes($manifest)[0..2] -join ' '
+  Write-Host "  Revit $y -> $back (exists, manifest first bytes: $first)"
   $done += $y
 }
 
