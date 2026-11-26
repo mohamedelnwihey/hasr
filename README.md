@@ -85,6 +85,27 @@ Output workbook:
 - On the Autodesk `rac_advanced_sample_project` export (5,415 elements),
   unclassified elements dropped from 4,732 to 75.
 
+## New in v0.3 — derived quantities / كميات مشتقة
+
+Beyond what the IFC states, Hasr now estimates the items a quantity surveyor
+usually needs. All of them are estimates from the model's own geometry and
+materials, labeled "geometry-derived estimate", and listed with their basis in
+the "افتراضات الكميات المشتقة" sheet. Turn them off with `--no-derived`.
+
+- Wall faces (both sides, openings removed by the model), plaster (masonry
+  walls only) and paint (masonry and gypsum walls).
+- Concrete formwork for elements whose own material says concrete (slabs and
+  beams: all faces except the top; columns, footings, walls: vertical faces).
+- Reinforcement steel in tonnes, only if you give ratios:
+  `python -m hasr model.ifc --rebar-template ratios.csv`, fill `kg_per_m3`,
+  then `python -m hasr model.ifc --rebar ratios.csv`. Hasr ships no ratios.
+- Room finishes from IfcSpace (floor, ceiling, skirting, wall finish) and a room
+  schedule sheet. Wall finish is perimeter x height with no door/window
+  deduction. Needs rooms in the export (Revit only exports rooms if asked).
+- New sheets: quantities per storey (الكميات حسب الدور), door and window
+  schedule by type and size (جدول الأبواب والشبابيك), room schedule.
+- Derived items flow into the price columns like any other BOQ row.
+
 ## Roadmap
 
 - pyRevit / Revit add-in wrapper (no IFC export step)
@@ -93,7 +114,7 @@ Output workbook:
 
 ## Status
 
-Test suite (16 checks) covers IFC2x3 and IFC4 extraction, unit handling,
+Test suite (23 checks, 7 of them on a small in-memory IFC with hand-computed answers) covers IFC2x3 and IFC4 extraction, unit handling,
 classification honesty, duplicate-quantity safety, and an end-to-end run on
 the Autodesk `rac_advanced_sample_project` IFC2x3 export (5,415 elements):
 door/window counts verified against the file's entity counts, and 410
