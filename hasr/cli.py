@@ -40,13 +40,34 @@ def main(argv=None):
                         help="CSV of unit prices: item,price (item = English or Arabic name)")
     parser.add_argument("--prices-template", default=None, metavar="CSV",
                         help="write a blank prices CSV for this model's BOQ items and exit")
+    parser.add_argument("--rebar", default=None, metavar="CSV",
+                        help="CSV of reinforcement ratios: family,kg_per_m3 (slabs, beams, columns, footings, walls)")
+    parser.add_argument("--rebar-template", default=None, metavar="CSV",
+                        help="write a blank rebar ratio CSV and exit")
+    parser.add_argument("--no-derived", action="store_true",
+                        help="skip derived quantities (finishes, formwork, rooms)")
     args = parser.parse_args(argv)
+
+    if args.rebar_template:
+        from .derived import write_rebar_template
+
+        write_rebar_template(args.rebar_template)
+        print(f"saved rebar template: {args.rebar_template}")
+        return 0
 
     if not os.path.exists(args.ifc):
         print(f"error: file not found: {args.ifc}", file=sys.stderr)
         return 2
 
     project_name, schema, unit_note, records = extract(args.ifc)
+    n_source = len(records)
+    extras = None
+    if not args.no_derived:
+        from .derived import derive, load_rebar_ratios
+
+        ratios = load_rebar_ratios(args.rebar) if args.rebar else None
+        new_records, extras = derive(args.ifc, records, ratios)
+        records = records + new_records
     lines = aggregate(records)
     unclassified, no_qty, geometry = summarize_issues(records)
 
@@ -69,16 +90,19 @@ def main(argv=None):
     write_boq(
         project_name, schema, unit_note, records, lines,
         unclassified, no_qty, geometry, out,
-        source_name=os.path.basename(args.ifc), prices=prices,
+        source_name=os.path.basename(args.ifc), prices=prices, extras=extras,
     )
 
     print(f"project : {project_name or '(unnamed)'}")
     print(f"schema  : {schema}")
     if unit_note:
         print(f"unit    : WARNING {unit_note}")
-    print(f"elements: {len(records)} (classified {len(records) - len(unclassified)}, "
+    print(f"elements: {n_source} (classified {n_source - len(unclassified)}, "
           f"unclassified {len(unclassified)}, geometry-estimated {len(geometry)}, "
           f"no-quantity {len(no_qty)})")
+    if extras is not None:
+        print(f"derived : {len(records) - n_source} estimated quantity records "
+              f"({len(extras['rooms'])} rooms, {len(extras['openings'])} door/window types)")
     print(f"boq rows: {len(lines)}")
     for (item_ar, item_en, unit_key), stats in sorted(lines.items()):
         unit_ar, unit_en = UNITS.get(unit_key, (unit_key, unit_key))
