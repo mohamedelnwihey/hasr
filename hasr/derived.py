@@ -207,8 +207,9 @@ def _container_storey(space):
         return ""
 
 
-def _rooms(model, correction):
+def _rooms(model, correction, lf=1.0):
     """One dict per IfcSpace: name, storey, floor area, perimeter, height."""
+    import numpy as np
     import ifcopenshell.geom as geom
     from ifcopenshell.util.shape import get_footprint_area, get_footprint_perimeter
 
@@ -224,7 +225,22 @@ def _rooms(model, correction):
             perim = float(get_footprint_perimeter(g)) * correction
             if area <= 0 or stats is None:
                 continue
+            v = np.array(g.verts, dtype=float).reshape(-1, 3) * correction
+            f = np.array(g.faces, dtype=int).reshape(-1, 3)
+            cr = np.cross(v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]])
+            bottom = f[cr[:, 2] < -1e-9]
+            R, t = np.eye(3), np.zeros(3)
+            try:
+                from ifcopenshell.util.placement import get_local_placement
+
+                M = np.array(get_local_placement(sp.ObjectPlacement), dtype=float)
+                R, t = M[:3, :3], M[:3, 3] * lf
+            except Exception:
+                pass
+            vw = v @ R.T + t
+            tris = [[(float(vw[i][0]), float(vw[i][1])) for i in tri] for tri in bottom]
             rows.append({
+                "tris": tris,
                 "guid": sp.GlobalId, "name": sp.Name or "", "long_name": sp.LongName or "",
                 "storey": _container_storey(sp), "area": area, "perimeter": perim,
                 "height": stats["height"],
@@ -291,7 +307,7 @@ def derive(path, records, ratios=None, use_geometry=True):
     if ratios:
         new += _rebar_records(records, ratios)
 
-    rooms = _rooms(model, correction) if use_geometry else []
+    rooms = _rooms(model, correction, lf) if use_geometry else []
     for r in rooms:
         src = ElementRecord(guid=r["guid"], ifc_type="IfcSpace", name=r["name"],
                             storey=r["storey"], material="", item_ar="", item_en="",
