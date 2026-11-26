@@ -17,6 +17,10 @@ GEOMETRY_MEASURE = {
     "roof": "top_area",
     "footing": "volume",
     "curtain_wall": "area",
+    "member": "length",
+    "plate": "panel_area",
+    "covering": "top_area",
+    "railing": "length",
 }
 
 _SETTINGS = None
@@ -51,6 +55,15 @@ def geometry_measure(element, measure: str):
             return float(get_area(g))
         if measure == "top_area":
             return float(get_top_area(g))
+        if measure == "panel_area":
+            # a flat panel has two big faces: half the surface, edges ignored
+            return float(get_area(g)) / 2.0
+        if measure == "length":
+            # longest side of the bounding box: the run length of a linear member
+            import numpy as np
+
+            v = np.array(g.verts).reshape(-1, 3)
+            return float((v.max(axis=0) - v.min(axis=0)).max())
     except Exception:
         return None
     return None
