@@ -1,0 +1,92 @@
+{
+  "_readme": "EXAMPLE finishing systems. Rates are typical-looking starting points, NOT specifications and NOT approved. Check each against your spec or the product data sheet, then set approved to true. Hasr does not vouch for any number here.",
+  "systems": {
+    "floor_porcelain_60": {
+      "ar": "أرضية بورسلين 60×60", "en": "Porcelain floor 60x60",
+      "boq_keywords": ["porcelain", "بورسلين", "tile", "سيراميك", "أرضيات"],
+      "components": [
+        {"id": "tiles", "ar": "بلاط بورسلين 60×60", "en": "Porcelain tiles 60x60", "kind": "piece", "piece_area": 0.36,
+         "unit": "tile", "waste": 10, "pack_size": 4, "pack_ar": "كرتونة (4 بلاطات)", "pack_en": "box of 4",
+         "source": "EXAMPLE: 10% waste for straight lay; confirm with your installer", "approved": false, "tags": ["finish"]},
+        {"id": "adhesive", "ar": "لاصق بلاط", "en": "Tile adhesive", "kind": "per_m2", "rate": 5.0, "unit": "kg",
+         "waste": 5, "pack_size": 25, "pack_ar": "شيكارة 25 كجم", "pack_en": "25 kg bag",
+         "source": "EXAMPLE: 5 kg/m2; take the real rate from the adhesive data sheet", "approved": false, "tags": ["adhesive"],
+         "included_keywords": ["لاصق", "adhesive", "mortar", "مونة"]},
+        {"id": "grout", "ar": "روبة", "en": "Grout", "kind": "per_m2", "rate": 0.5, "unit": "kg",
+         "waste": 5, "pack_size": 5, "pack_ar": "عبوة 5 كجم", "pack_en": "5 kg pack",
+         "source": "EXAMPLE: 0.5 kg/m2; depends on joint width and tile size", "approved": false, "tags": ["grout"]},
+        {"id": "skirting", "ar": "وزرة", "en": "Skirting", "kind": "per_m_perimeter", "rate": 1.0, "unit": "m",
+         "waste": 10, "pack_size": 0.6, "pack_ar": "قطعة 60 سم", "pack_en": "0.6 m piece",
+         "source": "EXAMPLE: full room perimeter, no door deduction", "approved": false, "tags": ["skirting"]}
+      ]
+    },
+    "floor_bath_porcelain": {
+      "ar": "أرضية حمام بورسلين + عزل", "en": "Bathroom porcelain floor + waterproofing",
+      "boq_keywords": ["porcelain", "بورسلين", "tile", "سيراميك", "أرضيات"],
+      "components": [
+        {"id": "tiles", "ar": "بلاط بورسلين 60×60", "en": "Porcelain tiles 60x60", "kind": "piece", "piece_area": 0.36,
+         "unit": "tile", "waste": 10, "pack_size": 4, "pack_ar": "كرتونة (4 بلاطات)", "pack_en": "box of 4",
+         "source": "EXAMPLE: 10% waste for straight lay", "approved": false, "tags": ["finish"]},
+        {"id": "adhesive", "ar": "لاصق بلاط", "en": "Tile adhesive", "kind": "per_m2", "rate": 5.0, "unit": "kg",
+         "waste": 5, "pack_size": 25, "pack_ar": "شيكارة 25 كجم", "pack_en": "25 kg bag",
+         "source": "EXAMPLE: 5 kg/m2", "approved": false, "tags": ["adhesive"]},
+        {"id": "waterproofing", "ar": "عزل مائي (سمنتي مرن)", "en": "Waterproofing membrane", "kind": "per_m2", "rate": 1.5, "unit": "kg",
+         "waste": 10, "pack_size": 20, "pack_ar": "عبوة 20 كجم", "pack_en": "20 kg pack",
+         "source": "EXAMPLE: 1.5 kg/m2 for two coats; take the real rate from the data sheet", "approved": false,
+         "tags": ["waterproofing"], "included_keywords": ["عزل", "waterproof"]},
+        {"id": "skirting", "ar": "وزرة", "en": "Skirting", "kind": "per_m_perimeter", "rate": 1.0, "unit": "m",
+         "waste": 10, "pack_size": 0.6, "pack_ar": "قطعة 60 سم", "pack_en": "0.6 m piece",
+         "source": "EXAMPLE: full perimeter", "approved": false, "tags": ["skirting"]}
+      ]
+    },
+    "wall_paint": {
+      "ar": "دهان حوائط (معجون + برايمر + وجهين)", "en": "Wall paint (putty + primer + 2 coats)",
+      "boq_keywords": ["paint", "دهان", "بلاستيك", "emulsion"],
+      "components": [
+        {"id": "putty", "ar": "معجون", "en": "Wall putty", "kind": "per_m2", "rate": 1.2, "unit": "kg",
+         "waste": 5, "pack_size": 25, "pack_ar": "شيكارة 25 كجم", "pack_en": "25 kg bag",
+         "source": "EXAMPLE: 1.2 kg/m2 for two layers", "approved": false, "tags": ["putty"],
+         "included_keywords": ["معجون", "putty"]},
+        {"id": "primer", "ar": "برايمر", "en": "Primer", "kind": "per_m2", "rate": 0.1, "unit": "L",
+         "waste": 5, "pack_size": 18, "pack_ar": "جردل 18 لتر", "pack_en": "18 L pail",
+         "source": "EXAMPLE: 0.1 L/m2", "approved": false, "tags": ["primer"],
+         "included_keywords": ["برايمر", "primer", "سيلر", "sealer"]},
+        {"id": "paint", "ar": "دهان (وجهين)", "en": "Paint, 2 coats", "kind": "per_m2", "rate": 0.25, "unit": "L",
+         "waste": 5, "pack_size": 18, "pack_ar": "جردل 18 لتر", "pack_en": "18 L pail",
+         "source": "EXAMPLE: 0.125 L/m2 per coat, two coats; take the real coverage from the paint data sheet",
+         "approved": false, "tags": ["paint"]}
+      ]
+    },
+    "ceiling_gypsum": {
+      "ar": "سقف جبس بورد معلق", "en": "Suspended gypsum board ceiling",
+      "boq_keywords": ["gypsum", "جبس"],
+      "components": [
+        {"id": "boards", "ar": "ألواح جبس 1.2×2.4", "en": "Gypsum boards 1.2x2.4", "kind": "piece", "piece_area": 2.88,
+         "unit": "board", "waste": 8, "pack_size": 1, "pack_ar": "لوح", "pack_en": "board",
+         "source": "EXAMPLE: 8% waste", "approved": false, "tags": ["finish"]},
+        {"id": "channels", "ar": "هيكل معدني (قطاعات)", "en": "Metal framing channels", "kind": "per_m2", "rate": 2.5, "unit": "m",
+         "waste": 5, "pack_size": 3.6, "pack_ar": "قطعة 3.6 م", "pack_en": "3.6 m piece",
+         "source": "EXAMPLE: 2.5 m of channel per m2; depends on the system's spacing", "approved": false,
+         "tags": ["frame"], "included_keywords": ["هيكل", "frame", "channel", "قطاعات"]},
+        {"id": "hangers", "ar": "تعليقات", "en": "Hangers", "kind": "per_m2", "rate": 0.7, "unit": "pc",
+         "waste": 5, "pack_size": 1, "pack_ar": "قطعة", "pack_en": "piece",
+         "source": "EXAMPLE: 0.7 per m2", "approved": false, "tags": ["hangers"],
+         "included_keywords": ["تعليق", "hanger"]},
+        {"id": "screws", "ar": "مسامير جبس", "en": "Drywall screws", "kind": "per_m2", "rate": 14, "unit": "pc",
+         "waste": 5, "pack_size": 1000, "pack_ar": "علبة 1000", "pack_en": "box of 1000",
+         "source": "EXAMPLE: 14 per m2", "approved": false, "tags": ["fixings"],
+         "included_keywords": ["مسامير", "screw", "مثبتات"]}
+      ]
+    }
+  },
+  "assignments": [
+    {"scope": "floor", "room_match": "bath|toilet|wc|حمام|دورة", "system": "floor_bath_porcelain"},
+    {"scope": "floor", "exclude": "balcon|terrace|بلكون|تراس", "system": "floor_porcelain_60"},
+    {"scope": "wall", "exclude": "bath|toilet|wc|حمام|دورة|balcon|terrace|بلكون|تراس", "system": "wall_paint"},
+    {"scope": "ceiling", "exclude": "balcon|terrace|بلكون|تراس", "system": "ceiling_gypsum"}
+  ],
+  "required_items": [
+    {"room_match": "bath|toilet|wc|حمام|دورة", "tags": ["waterproofing", "skirting"],
+     "labels": {"waterproofing": ["العزل المائي", "Waterproofing"], "skirting": ["الوزرة", "Skirting"]}}
+  ]
+}
