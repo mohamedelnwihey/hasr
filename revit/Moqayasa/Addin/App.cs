@@ -16,6 +16,7 @@ public sealed class App : IExternalApplication
         var data = new PushButtonData("MoqayasaRun", "تشغيل\nRun", Assembly.GetExecutingAssembly().Location, typeof(RunCommand).FullName)
         { ToolTip = "حصر وتسعير كل عناصر الموديل بضغطة واحدة / Take off and price the whole model in one click" };
         panel.AddItem(data);
+        Updater.Start(app);
         return Result.Succeeded;
     }
     public Result OnShutdown(UIControlledApplication app) => Result.Succeeded;
@@ -46,9 +47,11 @@ public sealed class RunCommand : IExternalCommand
             var feed = PriceFeedConfig.Load(feedPath);
             var log = new List<string>();
             try { log = PriceFeed.Refresh(feed, DateTime.Today, Fetcher.Get); feed.Save(feedPath); } catch (Exception ex) { log.Add("price feed: " + ex.Message); }
-            var prices = PriceFeed.Merge(Takeoff.LoadPrices(pricesPath), feed);
+            var prices = Takeoff.LoadPrices(pricesPath);   // only YOUR prices go in; they always win
 
             var res = Takeoff.Build(doc.Title, c.Elements, c.MaterialAreas, c.Rooms, prices, SystemsConfig.Load(systemsPath));
+            int refCount = PriceFeed.ApplyReference(res.Lines, feed);   // reference market prices only for lines you left empty
+            res.Notes.Add($"أسعار مرجعية من السوق لـ {refCount} بند (توريد فقط، غير معتمدة). الباقي محتاج عرض سعر. / Reference market prices for {refCount} lines (supply only, unapproved). Others need a quote.");
             foreach (var w in c.Warnings.Take(20)) res.Notes.Add("تحذير / warning: " + w);
             foreach (var l in log) res.Notes.Add("الأسعار / prices: " + l);
             Takeoff.WritePricesTemplate(pricesPath, res.Lines);   // keeps the user's file shape; existing prices are not lost because prices are read first and merged above
@@ -56,7 +59,7 @@ public sealed class RunCommand : IExternalCommand
             var stamp = DateTime.Now.ToString("yyyyMMdd-HHmm");
             var safe = string.Concat(doc.Title.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
             var xlsx = Path.Combine(docs, $"{safe}-{stamp}.xlsx"); var html = Path.Combine(docs, $"{safe}-{stamp}.html");
-            double? total = prices.Count > 0 ? Takeoff.Total(res) : (double?)null;
+            double? total = res.Lines.Any(l => l.Price != null) ? Takeoff.Total(res) : (double?)null;
             Report.WriteXlsx(xlsx, res);
             Report.WriteHtml(html, res, total, DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
 
@@ -81,7 +84,7 @@ static class Fetcher
     static System.Net.Http.HttpClient Make()
     {
         var h = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        h.DefaultRequestHeaders.UserAgent.ParseAdd("Moqayasa/0.5 (+https://github.com/mohamedelnwihey/hasr)");
+        h.DefaultRequestHeaders.UserAgent.ParseAdd("Moqayasa/" + Update.Current + " (+https://github.com/mohamedelnwihey/hasr)");
         return h;
     }
     public static string? Get(string url) => Http.GetStringAsync(url).GetAwaiter().GetResult();
