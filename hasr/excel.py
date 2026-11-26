@@ -72,7 +72,7 @@ def _print_setup(ws):
     ws.sheet_properties.pageSetUpPr.fitToPage = True
 
 
-def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_qty, geometry, out_path, source_name=""):
+def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_qty, geometry, out_path, source_name="", prices=None):
     wb = Workbook()
 
     # --- Sheet 1: BOQ summary (Arabic-first, right-to-left) ---
@@ -86,6 +86,8 @@ def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_
 
     header = ["م", "البند (عربي)", "Item (English)", "الوحدة", "الكمية الإجمالية",
               "المصدر", "التغطية"]
+    if prices is not None:
+        header += ["سعر الوحدة", "الإجمالي"]
     row = 5
     for i, h in enumerate(header, start=1):
         ws.cell(row=row, column=i, value=h)
@@ -107,11 +109,29 @@ def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_
                 cell.number_format = "#,##0.000"
             if col in (6, 7):
                 cell.font = NOTE_FONT if "هندسي" in str(v) or "تقديري" in str(v) else Font()
+        if prices is not None:
+            price = prices.get(item_en.lower()) if item_en.lower() in prices else prices.get(item_ar)
+            pc = ws.cell(row=row, column=8, value=price)
+            tc = ws.cell(row=row, column=9,
+                         value=f"=E{row}*H{row}" if price is not None else "")
+            for c in (pc, tc):
+                c.border = BORDER
+                c.alignment = CENTER
+                c.number_format = "#,##0.00"
+    if prices is not None:
+        row += 1
+        ws.cell(row=row, column=8, value="الإجمالي الكلي").font = Font(bold=True)
+        tot = ws.cell(row=row, column=9, value=f"=SUM(I6:I{row - 1})")
+        tot.font = Font(bold=True)
+        tot.number_format = "#,##0.00"
+        for c in (ws.cell(row=row, column=8), tot):
+            c.border = BORDER
+            c.alignment = CENTER
 
     # --- Notes section: what did NOT make it into the totals, said out loud ---
     # Notes are merged across the table width with wrap so they never run past
     # the print bounds (RTL sheets otherwise clip them at the left edge).
-    ncols = 7
+    ncols = 9 if prices is not None else 7
     row += 2
     ws.cell(row=row, column=1, value="ملاحظات / Notes").font = Font(bold=True, size=12)
     row += 1
@@ -140,10 +160,13 @@ def write_boq(project_name, schema, unit_note, records, lines, unclassified, no_
     if geometry:
         _note(f"بنود بكميات تقديرية محسوبة من المجسم (لا توجد كميات في الملف): {len(geometry)} عنصر"
               f" / Lines with geometry-derived ESTIMATED quantities (no quantities in file): {len(geometry)} elements")
+    if prices is not None:
+        _note("البنود بدون سعر لم تدخل الإجمالي الكلي. الأسعار من ملف المستخدم وليست من البرنامج"
+              " / Items with no price are not in the grand total. Prices come from the user's file, not from Hasr")
     if unit_note:
         _note(f"تنبيه الوحدات / Unit note: {unit_note}")
 
-    widths = [6, 34, 32, 12, 17, 16, 12]
+    widths = [6, 34, 32, 12, 17, 16, 12] + ([14, 16] if prices is not None else [])
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
