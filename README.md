@@ -106,6 +106,34 @@ the "افتراضات الكميات المشتقة" sheet. Turn them off with `
   schedule by type and size (جدول الأبواب والشبابيك), room schedule.
 - Derived items flow into the price columns like any other BOQ row.
 
+## New in v0.4 — X-RAY (finishing systems to purchase list) / كشف التشطيبات
+
+`python -m hasr model.ifc --xray [systems.json] [--boq-file my-boq.xlsx] [--xray-plan plan.png]`
+
+Takes the rooms (IfcSpace) of the model, assigns a finishing system per room and
+scope (floor, wall, ceiling), and breaks each system into what you actually buy
+(tiles, adhesive, grout, skirting, boards, channels, putty, primer, paint ...)
+with a declared waste percentage and pack sizes. Three outputs: the engineering
+takeoff (the existing sheets), the purchase list, and the findings.
+
+- **Evidence for every number** (sheet "X-RAY دليل الأرقام"): room and GUID, base
+  measure, formula, rate, waste, source of the rate, approved or not.
+- **What is missing** (sheet "X-RAY إيه اللي ناقص"): green = measured and every
+  rate approved by you; orange = an unapproved example rate, or an item your BOQ
+  may already include; red = no system for that scope, a required item missing
+  (e.g. bathroom without waterproofing), nothing in your BOQ for it, or no rooms.
+- **No double counting**: with `--boq-file`, a BOQ row such as "gypsum ceiling
+  incl. metal frame" produces "likely included, do not add separately" instead of
+  a duplicate frame line.
+- `--xray-plan plan.png` draws the rooms colored by status (needs matplotlib).
+- **Rates are examples.** `systems_example.json` is a starting point with
+  `approved: false` on every rate. Copy it (`--xray-template mine.json`), check each
+  value against your spec or the product data sheet, set `approved: true`.
+  Until then every purchase number built on it stays orange. Hasr does not vouch
+  for them.
+- Limits: wall area is perimeter x height with no door/window deduction; ceilings
+  are assumed flat and equal to the room area; Revit exports rooms only if you ask.
+
 ## Roadmap
 
 - pyRevit / Revit add-in wrapper (no IFC export step)
@@ -114,7 +142,7 @@ the "افتراضات الكميات المشتقة" sheet. Turn them off with `
 
 ## Status
 
-Test suite (23 checks, 7 of them on a small in-memory IFC with hand-computed answers) covers IFC2x3 and IFC4 extraction, unit handling,
+Test suite (31 checks, 15 of them on a small in-memory IFC with hand-computed answers) covers IFC2x3 and IFC4 extraction, unit handling,
 classification honesty, duplicate-quantity safety, and an end-to-end run on
 the Autodesk `rac_advanced_sample_project` IFC2x3 export (5,415 elements):
 door/window counts verified against the file's entity counts, and 410
@@ -125,3 +153,12 @@ battle-tested on live project models — feedback and sample files welcome.
 
 MIT — see [LICENSE](LICENSE). Test sample IFC files are third-party content
 and are not redistributed; see [samples/README.md](samples/README.md).
+
+## v0.5: مقايسة (Moqayasa), the Revit add-in, merged into Hasr
+
+Hasr (takeoff) and the cost estimate are now one tool, **مقايسة**, in `revit/Moqayasa/`. One click on **Run** in Revit collects the model (architectural and structural elements, rooms, finish materials), takes off the quantities, checks what is missing (green / orange / red), builds the purchase list with waste, and writes an Excel workbook and an Arabic RTL HTML report.
+
+- Revit 2022 to 2027, one source tree, one build per year (.NET Framework 4.8 for 2022-2024, .NET 8 for 2025-2026, .NET 10 for 2027). All six compile against each year's API. **Not yet run inside Revit.**
+- Prices: none shipped. Rates in `hasr/systems_example.json` are unapproved examples. The price feed (`hasr/price_sources_example.json`, see `revit/Moqayasa/PRICE_SOURCES.md`) reads dated market prices from a public source and your `prices.csv` always wins.
+- 49 checks for the C# core (`dotnet run --project revit/Moqayasa/Tests`), 31 for the Python side.
+- No secrets in this repo.
