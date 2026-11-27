@@ -1,0 +1,6 @@
+{
+  "version": "0.5.4",
+  "changelog_ar": "تعبئة أسعار السوق المرجعية تلقائيا (توريد فقط، غير معتمدة) مع عمود مصدر السعر، وفحص التحديثات عند فتح ريفيت.",
+  "changelog_en": "Reference market prices filled automatically (supply only, unapproved) with a price-source column; update check at Revit startup.",
+  "download": "https://github.com/mohamedelnwihey/hasr/tree/main/revit/Moqayasa"
+}
